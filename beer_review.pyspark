@@ -1,0 +1,82 @@
+import sys
+import math
+
+#remove punctuation
+def removepunctuation(line):
+    line1 = re.findall(r'\d+',line)
+    return line1
+
+#read testfile
+myfile="file:/home/training/Desktop/beer_reviews/beer/*"
+beerfile = sc.textFile(myfile)
+
+#generate review pairs(brewery_name,review_overall)
+reviewrate=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[1],float(x[3])))\
+   .reduceByKey(lambda v1,v2:v1+v2)
+reviewnum=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[1],1))\
+   .reduceByKey(lambda v1,v2:v1+v2)
+reviewavg=reviewrate.join(reviewnum).mapValues(lambda x:x[0]/x[1]).map(lambda (a,b):(b,a))
+#generate (brewery_name,review_overall) Top list
+revierank=reviewavg.sortByKey(ascending=False)
+
+#generate review pairs(brewery_name,beer_abv)
+abvpairs=beerfile.map(lambda line:line.split(",")).filter(lambda line:line[11]!="").map(lambda x: (x[1],x[10],float(x[11]))).distinct().map(lambda x: (x[0],x[2]))\
+   .reduceByKey(lambda v1,v2:v1+v2)
+abvnums=beerfile.map(lambda line:line.split(",")).filter(lambda line:line[11]!="").map(lambda x: (x[1],x[10],1)).distinct().map(lambda x: (x[0],x[2]))\
+   .reduceByKey(lambda v1,v2:v1+v2)
+abvavg=abvpairs.join(abvnums).mapValues(lambda x:x[0]/x[1]).map(lambda (a,b):(b,a))
+#generate (brewery_name,beer_abv) Top list
+abvrank=abvavg.sortByKey(ascending=False)
+
+
+#beer classifyied by abv
+abvpairs1=beerfile.map(lambda line:line.split(",")).filter(lambda line:line[11]!="").map(lambda x: (x[11],x[10])).distinct().map(lambda (x1,x2):(x1,1)).reduceByKey(lambda v1,v2:v1+v2).map(lambda (a,b):(b,a)).sortByKey(ascending=False)
+
+#the number of different beers
+beernums=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[10],1)).reduceByKey(lambda v1,v2:v1+v2).distinct()
+
+#beer-quality
+#generate (beer_name,review_overall) pairs
+arpairs=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[10],float(x[3])))\
+   .reduceByKey(lambda v1,v2:v1+v2).distinct()
+beernum=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[10],1))\
+   .reduceByKey(lambda v1,v2:v1+v2).distinct()
+arratepair=arpairs.join(beernum).mapValues(lambda x:x[0]/x[1])
+arrate=arratepair.map(lambda (a,b):(b,a))
+#generate (beer_name,review_overall) Top list
+arrank=arrate.sortByKey(ascending=False)
+
+#beer-popularity
+#generate (beer_name,been reviewed times) pairs
+beertimes=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[10],1))\
+   .reduceByKey(lambda v1,v2:v1+v2).distinct()
+beertime=beertimes.map(lambda (a,b):(b,a))
+#generate (beer_name,been reviewed times) Top list
+beerpopranks=beertime.sortByKey(ascending=False)
+
+#find out the most popular list and highest review_overall list
+#combined them together and find the overlap
+beertimestop=beertimes.filter(lambda x:x[1]>1000)
+tplist=arratepair.filter(lambda x:x[1]>4.40).join(beertimestop).filter(lambda x:x[0]!="")
+
+#define a function to compute the varience
+def computesim(pair):
+distant=(pair[0]-pair[1])
+sim=pow(distant,2)
+return(sim)
+
+#calculate the varience between different properties
+aromasim=beerfile.map(lambda line:line.split(",")).map(lambda x: (float(x[3]),float(x[4]))).map(lambda x:computesim(x)).mean()
+appearancesim=beerfile.map(lambda line:line.split(",")).map(lambda x: (float(x[3]),float(x[5]))).map(lambda x:computesim(x)).mean()
+palatesim=beerfile.map(lambda line:line.split(",")).map(lambda x: (float(x[3]),float(x[8]))).map(lambda x:computesim(x)).mean()
+tastesim=beerfile.map(lambda line:line.split(",")).map(lambda x: (float(x[3]),float(x[9]))).map(lambda x:computesim(x)).mean()
+
+#beerkinds
+beerkinds=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[12],1)).reduceByKey(lambda v1,v2:v1+v2)
+#brewerykinds
+brewerykinds=beerfile.map(lambda line:line.split(",")).map(lambda x: (x[0],1)).reduceByKey(lambda v1,v2:v1+v2)
+
+
+
+
+

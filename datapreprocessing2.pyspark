@@ -1,0 +1,16 @@
+#data preprocessing
+
+#read as testfile
+myfile="file:/home/training/Desktop/beer_reviews/beer_reviews.csv"
+file = sc.textFile(myfile)
+
+#filter the first line
+head = file.first()
+beerfile = file.filter(lambda line:line!=head)
+
+#filter the special line
+result1=file.filter(lambda line:line.find('"')!=-1)
+
+#save result
+result1.saveAsTextFile("file:/home/training/Desktop/beer_reviews/out1")
+
