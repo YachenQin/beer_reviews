@@ -1,0 +1,5 @@
+die=c(1,2,3,4,5,6)
+p=c(0.34,0.18,0.05,0.18,0.13,0.12)
+Xvalues=sample(die,100000,replace=TRUE,p)
+hist(Xvalues,freq=F)
+plot(density(Xvalues))
